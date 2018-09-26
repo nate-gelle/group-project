@@ -86,15 +86,22 @@ class ApptCalendar extends Component {
     }
 
     onSelect = (slotInfo) => {
+        // Select function for customer-facing side - select appointment with duration equal to estimate
         if (this.props.userType === 'customer'){
+            // Ensure only one appointment has been selected
             if(this.state.events[0].start){
                 sweetAlertFailure("You've already chosen a time for the cleaning, if this was a mistake, feel free to drag and drop your previous selection to your desired time.");
             } else {
+                    // Create appointment event using data passed by the onSelectSlot property
+                    // Start is created by initial click, end is created by drag and release
                     let start = new Date(slotInfo.start);
                     let end = new Date(slotInfo.end);
+                    // Determine duration of appointment selection by calculation time difference between start and end
                     let diffHours = end.getHours() - start.getHours();
                     let diffMinutes = end.getMinutes() - start.getMinutes();
                     let diff = diffHours + (diffMinutes / 60);
+                    // Ensure the duration of appointment selection is equal to the duration estimate calculated elsewhere
+                    // If it is, create the appointment as a new event and add to the array of events for displaying
                     if (this.props.estimate === diff){
                         this.setState({
                             newEvent: {start: new Date(slotInfo.start), end: new Date(slotInfo.end)},
@@ -102,12 +109,14 @@ class ApptCalendar extends Component {
                         this.setState({
                             events: [this.state.newEvent, ...this.props.unavailable]
                         });
+                        // Dispatch the appointment data using newEvent
                         this.dispatchAppt();
                         return true;
                     } else {
                         sweetAlertFailure(`The time you've selected does not match your estimated duration of ${this.props.estimate} hour(s). Please select another time that will accomodate this estimate.`);
                     }
             }
+        // Select function for admin side - changes availability on customer side  
         } else if (this.props.userType === 'admin'){
             this.setState({
                 newEvent: {start: new Date(slotInfo.start), end: new Date(slotInfo.end)},
@@ -120,6 +129,8 @@ class ApptCalendar extends Component {
         }        
     }    
 
+    // Dispatch appointment selection as newEvent to the appropriate reducer
+    // from there you can use sagas and a request to Post to db
     dispatchAppt = () => {
         this.props.dispatch({ type: CUSTOMER_ACTIONS.APPT, payload: this.state.newEvent });
         sweetAlertSuccess(`We've recorded you're desired cleaning time on ${this.state.newEvent.start.toLocaleDateString()} from ${this.state.newEvent.start.toLocaleTimeString()} to ${this.state.newEvent.end.toLocaleTimeString()}`);
